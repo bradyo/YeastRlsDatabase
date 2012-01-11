@@ -1,0 +1,29 @@
+1. Slash (/) between alleles in diploid
+2. Wild type in all caps, deletion lowercase
+4. Strain background before genotype for strains not BY4742
+	- might need all strains to have background (can't programatically distinguish background name from genes)
+  - might want to have separate strain background column
+
+
+examples: 
+
+diploid heterozygous null for SIR2
+sir2/SIR2
+
+diploid homozygous null double deletion
+sir2/sir2 fob1/fob1
+
+diploid heterozygous double null
+sir2/SIR2 fob1/FOB1
+
+with plasmids
+sir2/sir2 fob1/fob1 + pDB868
+
+over expression (all caps, -OE at end)
+SIR2-OE
+
+sequence modifications -name
+SIR2-GFP
+SIR2-TAP
+
+
