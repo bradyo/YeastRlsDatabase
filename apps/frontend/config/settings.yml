@@ -25,24 +25,15 @@ test:
 
 all:
   .settings:
-    relative_url_root:      /
-
-    # Form security secret (CSRF protection)
+    relative_url_root:      /web
     csrf_secret:            false
-
-    # Output escaping settings
     escaping_strategy:      true
     escaping_method:        ESC_SPECIALCHARS
-
-    # Enable the database manager
     use_database:           true
     
   .actions:
     error_404_module:       default
     error_404_action:       error404
-      
     login_module:           auth
-    login_action:           login
-
     secure_module:          auth
     secure_action:          login

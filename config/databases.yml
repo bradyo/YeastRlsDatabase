@@ -1,12 +1,7 @@
 all:
-  core:
-    class: sfDoctrineDatabase
+  default:
+    class: sfPDODatabase
     param:
-      dsn: sqlite:///<?php echo dirname(__FILE__); ?>/../data/db/core.db
-
-  ncbi_gene:
-    class: sfDoctrineDatabase
-    param:
-      dsn: sqlite:///<?php echo dirname(__FILE__); ?>/../data/db/ncbi_gene.db
-
-
+      dsn: 'mysql:host=localhost;dbname=sageweb_yeast-rls'
+      username: root
+      password: happy

@@ -1,25 +1,45 @@
-CREATE TABLE credential (id INT AUTO_INCREMENT, name VARCHAR(64) NOT NULL, description VARCHAR(255) NOT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE equipment (id INT AUTO_INCREMENT, name VARCHAR(128) NOT NULL, owner VARCHAR(128), comment text, is_locked VARCHAR(1), created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX owner_idx (owner), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE groups (id INT AUTO_INCREMENT, name VARCHAR(128) NOT NULL, description text, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE group_credential (group_id INT, credential_id INT, PRIMARY KEY(group_id, credential_id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE mouse_strain (id INT AUTO_INCREMENT, name VARCHAR(128) NOT NULL UNIQUE, owner VARCHAR(128), background VARCHAR(255), genotype VARCHAR(255), genotype_short VARCHAR(255), genotype_unique VARCHAR(255), comment text, is_locked VARCHAR(1), created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX owner_idx (owner), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE reagent (id INT AUTO_INCREMENT, name VARCHAR(128) NOT NULL, owner VARCHAR(128), comment text, is_locked VARCHAR(1), created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX owner_idx (owner), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE skill (id INT AUTO_INCREMENT, name VARCHAR(128) NOT NULL, owner VARCHAR(128), comment text, is_locked VARCHAR(1), created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX owner_idx (owner), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE user (id INT AUTO_INCREMENT, username VARCHAR(128) NOT NULL UNIQUE, email VARCHAR(128) NOT NULL, algorithm VARCHAR(128) DEFAULT 'sha1' NOT NULL, salt VARCHAR(128), password VARCHAR(128), lab VARCHAR(128), location VARCHAR(128), phone VARCHAR(32), created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX username_idx (username), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE user_credential (user_id INT, credential_id INT, PRIMARY KEY(user_id, credential_id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE user_group (user_id INT, group_id INT, PRIMARY KEY(user_id, group_id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE worm_strain (id INT AUTO_INCREMENT, name VARCHAR(128) NOT NULL UNIQUE, owner VARCHAR(128), background VARCHAR(255), genotype VARCHAR(255), genotype_short VARCHAR(255), genotype_unique VARCHAR(255), freezer_code VARCHAR(255), outcross_number BIGINT, comment text, is_locked VARCHAR(1), created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX owner_idx (owner), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
-CREATE TABLE yeast_strain (id INT AUTO_INCREMENT, name VARCHAR(128) NOT NULL UNIQUE, owner VARCHAR(128), background VARCHAR(255), mating_type VARCHAR(255), genotype VARCHAR(255), genotype_short VARCHAR(255), genotype_unique VARCHAR(255), freezer_code VARCHAR(255), comment text, is_locked VARCHAR(1), created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, INDEX owner_idx (owner), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
+CREATE TABLE experiment (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    type VARCHAR(32),
+    name VARCHAR(64),
+    status VARCHAR(32),
+    data TEXT,
+    strain_data TEXT
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
 
-ALTER TABLE equipment ADD CONSTRAINT equipment_owner_user_username FOREIGN KEY (owner) REFERENCES user(username);
-ALTER TABLE group_credential ADD CONSTRAINT group_credential_group_id_groups_id FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
-ALTER TABLE group_credential ADD CONSTRAINT group_credential_credential_id_credential_id FOREIGN KEY (credential_id) REFERENCES credential(id) ON DELETE CASCADE;
-ALTER TABLE mouse_strain ADD CONSTRAINT mouse_strain_owner_user_username FOREIGN KEY (owner) REFERENCES user(username);
-ALTER TABLE reagent ADD CONSTRAINT reagent_owner_user_username FOREIGN KEY (owner) REFERENCES user(username);
-ALTER TABLE skill ADD CONSTRAINT skill_owner_user_username FOREIGN KEY (owner) REFERENCES user(username);
-ALTER TABLE user_credential ADD CONSTRAINT user_credential_user_id_user_id FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE;
-ALTER TABLE user_credential ADD CONSTRAINT user_credential_credential_id_credential_id FOREIGN KEY (credential_id) REFERENCES credential(id) ON DELETE CASCADE;
-ALTER TABLE user_group ADD CONSTRAINT user_group_user_id_user_id FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE;
-ALTER TABLE user_group ADD CONSTRAINT user_group_group_id_groups_id FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE;
-ALTER TABLE worm_strain ADD CONSTRAINT worm_strain_owner_user_username FOREIGN KEY (owner) REFERENCES user(username);
-ALTER TABLE yeast_strain ADD CONSTRAINT yeast_strain_owner_user_username FOREIGN KEY (owner) REFERENCES user(username);
+CREATE TABLE strain (
+    id INT AUTO_INCREMENT, 
+    namesapce VARCHAR(32),
+    name VARCHAR(128) NOT NULL, 
+    owner VARCHAR(128), 
+    background VARCHAR(255), 
+    mating_type VARCHAR(255),
+    genotype VARCHAR(255), 
+    genotype_short VARCHAR(255), 
+    genotype_unique VARCHAR(255), 
+    freezer_code VARCHAR(255), 
+    comment text, 
+    is_locked VARCHAR(1), 
+    created_at DATETIME NOT NULL, 
+    updated_at DATETIME NOT NULL, 
+    INDEX owner_idx (owner), 
+    PRIMARY KEY(id)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
+
+
+
+
+CREATE TABLE yeastrls_experiment (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  facility VARCHAR(64),
+  number INT NULL,
+  description TEXT NULL,
+  key_data TEXT NOT NULL,
+  requested_by VARCHAR(64) NOT NULL,
+  requested_at TIMESTAMP,
+	request_message TEXT NULL,
+  reviewed_at TIMESTAMP NULL,
+  status VARCHAR(64) NULL,
+  review_message TEXT NULL,
+  completed_at TIMESTAMP
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci ENGINE = INNODB;
