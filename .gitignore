@@ -1,9 +1,9 @@
 # ignore data directories
-data/build/
-data/build-archive/
-data/cache/
-data/logs/
-data/sources/
+data/build/*
+data/archive/*
+data/cache/*
+data/logs/*
+data/sources/*
 
 # ignore dev files
 nbproject/

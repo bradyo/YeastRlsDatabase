@@ -1,16 +1,16 @@
 
 CREATE TABLE "set" (
-  "id" INTEGER PRIMARY KEY,
-  "name" VARCHAR NULL,
-  "media" VARCHAR NULL,
-  "temperature" REAL NULL,
-  "experiment" VARCHAR NULL,
-  "strain" VARCHAR NULL,
-  "lifespans" VARCHAR NULL,
-  "lifespan_start_count" INTEGER NULL,
-  "lifespan_count" INTEGER NULL,
-  "lifespan_mean" REAL NULL,
-  "lifespan_stdev" REAL NULL 
+    "id" INTEGER PRIMARY KEY,
+    "name" VARCHAR NULL,
+    "media" VARCHAR NULL,
+    "temperature" REAL NULL,
+    "experiment" VARCHAR NULL,
+    "strain" VARCHAR NULL,
+    "lifespans" VARCHAR NULL,
+    "lifespan_start_count" INTEGER NULL,
+    "lifespan_count" INTEGER NULL,
+    "lifespan_mean" REAL NULL,
+    "lifespan_stdev" REAL NULL 
 );
 CREATE INDEX set_name ON "set" (name);
 CREATE INDEX set_media ON "set" (media);
@@ -20,38 +20,38 @@ CREATE INDEX set_strain ON "set" (strain);
 
 
 CREATE TABLE "result" (
-  "id" INTEGER PRIMARY KEY,
-  "experiments" VARCHAR NULL,
-  "set_name" VARCHAR NULL,
-  "set_strain" VARCHAR NULL,
-  "set_background" VARCHAR NULL,
-  "set_mating_type" VARCHAR NULL,
-	"set_locus_tag" VARCHAR NULL,
-  "set_genotype" VARCHAR NULL,
-  "set_media" VARCHAR NULL,
-  "set_temperature" REAL NULL,
-  "set_lifespan_start_count" INTEGER NULL,
-  "set_lifespan_count" INTEGER NULL,
-  "set_lifespan_mean" REAL NULL,
-  "set_lifespan_stdev" REAL NULL,
-  "set_lifespans" VARCHAR NULL,
-  "ref_name" VARCHAR NULL,
-  "ref_strain" VARCHAR NULL,
-  "ref_background" VARCHAR NULL,
-  "ref_mating_type" VARCHAR NULL,
-	"ref_locus_tag" VARCHAR NULL,
-  "ref_genotype" VARCHAR NULL,
-  "ref_media" VARCHAR NULL,
-  "ref_temperature" REAL NULL,
-  "ref_lifespan_start_count" INTEGER NULL,
-  "ref_lifespan_count" INTEGER NULL,
-  "ref_lifespan_mean" REAL NULL,
-  "ref_lifespan_stdev" REAL NULL,
-  "ref_lifespans" VARCHAR NULL,
-  "percent_change" REAL NULL,
-  "ranksum_u" REAL NULL,
-  "ranksum_p" REAL NULL,
-  "pooled_by" VARCHAR NULL
+    "id" INTEGER PRIMARY KEY,
+    "experiments" VARCHAR NULL,
+    "set_name" VARCHAR NULL,
+    "set_strain" VARCHAR NULL,
+    "set_background" VARCHAR NULL,
+    "set_mating_type" VARCHAR NULL,
+    "set_locus_tag" VARCHAR NULL,
+    "set_genotype" VARCHAR NULL,
+    "set_media" VARCHAR NULL,
+    "set_temperature" REAL NULL,
+    "set_lifespan_start_count" INTEGER NULL,
+    "set_lifespan_count" INTEGER NULL,
+    "set_lifespan_mean" REAL NULL,
+    "set_lifespan_stdev" REAL NULL,
+    "set_lifespans" VARCHAR NULL,
+    "ref_name" VARCHAR NULL,
+    "ref_strain" VARCHAR NULL,
+    "ref_background" VARCHAR NULL,
+    "ref_mating_type" VARCHAR NULL,
+    "ref_locus_tag" VARCHAR NULL,
+    "ref_genotype" VARCHAR NULL,
+    "ref_media" VARCHAR NULL,
+    "ref_temperature" REAL NULL,
+    "ref_lifespan_start_count" INTEGER NULL,
+    "ref_lifespan_count" INTEGER NULL,
+    "ref_lifespan_mean" REAL NULL,
+    "ref_lifespan_stdev" REAL NULL,
+    "ref_lifespans" VARCHAR NULL,
+    "percent_change" REAL NULL,
+    "ranksum_u" REAL NULL,
+    "ranksum_p" REAL NULL,
+    "pooled_by" VARCHAR NULL
 );
 CREATE INDEX result_set_name ON "result" (set_name);
 CREATE INDEX result_set_strain ON "result" (set_strain);
@@ -76,21 +76,18 @@ CREATE INDEX result_pooled_by ON "result" (pooled_by);
 
 
 CREATE TABLE "result_experiment" (
-  "result_id" INTEGER NOT NULL,
-  "experiment" VARCHAR NOT NULL
+    "result_id" INTEGER NOT NULL,
+    "experiment_id" INTEGER NOT NULL,
+    INDEX (result_id),
+    INDEX (experiment_id)
 );
-CREATE INDEX result_experiment_result_id ON "result_experiment" (result_id);
-CREATE INDEX result_experiment_experiment ON "result_experiment" (experiment);
 
-
-CREATE TABLE "genotype_pubmed_id" (
-  "genotype" VARCHAR NOT NULL,
-  "pubmed_id" INTEGER NOT NULL
+CREATE TABLE "result_pubmed_id" (
+    "result_Id" VARCHAR NOT NULL,
+    "pubmed_id" INTEGER NOT NULL,
+    INDEX (result_Id),
+    INDEX (pubmed_id)
 );
-CREATE INDEX genotype_pubmed_id_genotype ON "genotype_pubmed_id" (genotype);
-CREATE INDEX genotype_pubmed_id_pubmed_id ON "genotype_pubmed_id" (pubmed_id);
-
-
 
 
 CREATE TABLE "result_set" (
@@ -171,16 +168,9 @@ CREATE INDEX yeast_strain_mating_type ON yeast_strain (mating_type);
 
 
 CREATE TABLE "meta" (
-  "name" VARCHAR NOT NULL,
-	"value" VARCHAR
+    "name" VARCHAR NOT NULL,
+    "value" VARCHAR
 );
 CREATE INDEX meta_name ON meta (name);
 
-
-CREATE TABLE "build_log" (
-	"id" INTEGER PRIMARY KEY,
-	"filename" VARCHAR NOT NULL,
-	"message" VARCHAR
-);
-CREATE INDEX build_log_filename ON build_log (filename);
 
