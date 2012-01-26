@@ -3,137 +3,128 @@
 class Build_Builder {
     const FILTER_FILENAME = 'filter.csv';
     const STRAINS_FILENAME = 'strains.csv';
-
+    const EXPERIMENTS_FOLDER = 'experiments';
+    
     private $inputPath;
-    private $sourcesPath;
     private $archivePath;
-    private $db;
+    private $dbConfig;
     private $execPathForR;
+    private $logFilePath;
     
     private $matingTypeService;
-    private $genotypeService;
+    private $geneService;
 
     public function __construct($config) {
-        $this->inputPath = BASE_PATH . '/data/input';
-        $this->sourcesPath = BASE_PATH . '/data/sources';
-        $this->archivePath = BASE_PATH . '/data/archive';
-        $this->execPathForR = '/usr/bin/R';
-        $this->db = $config['db'];
+        $this->inputPath = $config['inputPath'];
+        $this->archivePath = $config['archivePath'];
+        $this->execPathForR = $config['rExecPath'];
+        $this->dbConfig = $config['db'];
+        $this->logFilePath = $config['logFilePath'];
+
+        // set up database connection
+        $dsn = $this->dbConfig['dsn'];
+        $username = $this->dbConfig['username'];
+        $password = $this->dbConfig['password'];
+        $this->db = new PDO($dsn, $username, $password);
         
-        $this->matingTypeService = new Service_MatingType();
-        $this->genotypeService = new Service_Genotype($this->db);
+        // set up services
+        $this->matingTypeService = new Service_MatingTypeService();
+        $this->geneService = new Service_GeneService($this->db);
+        
+        // csv parsing may break if this is not set in php env
+        ini_set('auto_detect_line_endings', true);
     }
 
     public function run() {
-        $this->buildSources();
         $this->deactivateWebsite();
-        $this->buildDatabase();
+        $this->rebuildDatabase();
         $this->reactivateWebsite();
-        $this->buildArchive();
+        $this->createArchive();
     }
 
-    private function buildSources() {
-        // clear folders in sources directory
-        $this->deleteDirectory($this->sourcesPath);
-        $dir = opendir($this->sourcesPath);
-        while (false !== ($filename = readdir($dir))) {
-            if ($filename == '.' || $filename == '..') {
-                continue;
-            }
-            $this->deleteDirectory($filename);
-        }
-
-        // process input folders
+    private function rebuildDatabase() {
+        $this->truncateTargetTables();
         $dir = opendir($this->inputPath);
         while (false !== ($filename = readdir($dir))) {
-            if ($filename == '.' || $filename == '..') {
+            $path = $this->inputPath . DIRECTORY_SEPARATOR . $filename;
+            if (! is_dir($path) || $filename == '.' || $filename == '..') {
                 continue;
             }
             $this->processInputFolder($filename);
         }
+        $this->optimizeTargetTables();
     }
-
-    private function processInputFolder($folder) {
-        echo "processing $folder \n";
-        
-        // load filters
-        $filters = array();
-        $filtersPath = $this->inputPath . DIRECTORY_SEPARATOR . $folder 
+    
+    private function truncateTargetTables() {
+        $targetTables = $this->getTargetTables();
+        foreach ($targetTables as $table) {
+            $this->db->exec('TRUNCATE ' . $table);
+        }
+    }
+    
+    private function optimizeTargetTables() {
+        $targetTables = $this->getTargetTables();
+        foreach ($targetTables as $table) {
+            $this->db->exec('OPTIMIZE ' . $table);
+        }
+    }
+    
+    private function getTargetTables() {
+        return array(
+            'build_meta',
+            'citation',
+            'experiment',
+            'strain',
+            'sample_cell',
+            'cell',
+            'sample',
+            'comparison',
+            'across_media',
+            'across_mating'
+        );
+    }
+    
+    private function processInputFolder($namespace) {
+        // load filter file if it exists
+        $filter = null;
+        $filterFilePath = $this->inputPath . DIRECTORY_SEPARATOR . $namespace 
                 . DIRECTORY_SEPARATOR . self::FILTER_FILENAME;
-        if (file_exists($filtersPath)) {
-            $file = fopen($filtersPath, 'r');
-            fgetcsv($file); // discard header
-            while (false !== ($rowData = fgetcsv($file))) {
-                $strainData = array(
-                    'shortGenotype' => $rowData[0],
-                    'poolingGenotype' => $this->genotypeService->getNormalizedGenotype($rowData[0]),
-                    'media' => $rowData[1],
-                    'background' => $rowData[2],
-                    'matingType' => $this->matingTypeService->getNormalizedMatingType($rowData[3]),
-                    'reference' => $rowData[4],
-                    'comment' => $rowData[5],
-                );
-                $key = join('/', array(
-                    $strainData['poolingGenotype'],
-                    $strainData['background'],
-                    $strainData['matingType'],
-                )); 
-                echo "$key\n";
-                die();
-                $filters[$key] = $strainData;
-            }
+        if (is_file($filterFilePath)) {
+            $filter = new Build_Filter($filterFilePath, $this->geneService, $this->matingTypeService);
         }
         
-        // create source folder
-        mkdir($this->sourcesPath . DIRECTORY_SEPARATOR . $folder);
+        // import strains
+        $strainsFilePath = $this->inputPath 
+                . DIRECTORY_SEPARATOR . $namespace 
+                . DIRECTORY_SEPARATOR . self::STRAINS_FILENAME;
+        if (is_file($strainsFilePath)) {
+            $importer = new Build_StrainsImporter($this->db, $this->geneService, $this->matingTypeService);
+            $importer->setFilter($filter);
+            $importer->import($strainsFilePath, $namespace);
+        }
         
-        // process strains file
-        $strainsInputPath = $this->inputPath . DIRECTORY_SEPARATOR . $folder 
-                . DIRECTORY_SEPARATOR . self::STRAINS_FILENAME;
-        $strainsOutputPath = $this->sourcesPath . DIRECTORY_SEPARATOR . $folder
-                . DIRECTORY_SEPARATOR . self::STRAINS_FILENAME;
-        if (file_exists($strainsInputPath)) {
-            // loop over input file, output to output file if strain passes filter
-            $inputFile = fopen($strainsInputPath, 'r');
-            touch($strainsOutputPath);
-            $outputFile = fopen($strainsOutputPath, 'w');
-            while (false !== ($rowData = fgetcsv($inputFile))) {
-                $key = join('/', array(
-                    $rowData[5],
-                    $rowData[2],
-                    $rowData[3],
-                ));
-                if (isset($filters[$key])) {
-                    fputcsv($outputFile, $rowData);
+        // import experiments
+        $inputExperimentsPath = $this->inputPath 
+                . DIRECTORY_SEPARATOR . $namespace 
+                . DIRECTORY_SEPARATOR . self::EXPERIMENTS_FOLDER;
+        if (is_dir($inputExperimentsPath)) {
+            $dir = opendir($inputExperimentsPath);
+            $importer = new Build_ExperimentImporter($this->db, $this->geneService, $this->matingTypeService);
+            while (($filename = readdir($dir)) !== false) {
+                if (! $this->isExperimentFile($filename)) {
+                    continue;
                 }
+                $expFilePath = $inputExperimentsPath . DIRECTORY_SEPARATOR . $filename;
+                $importer->import($namespace, $expFilePath);
             }
-            fclose($inputFile);
-            fclose($outputFile);
         }
     }
- 
-
-    private function deleteDirectory($rootPath) {
-        $dir = opendir($rootPath);
-        while (false !== ($filename = readdir($dir))) {
-            if ($filename == '.' || $filename == '..') {
-                continue;
-            }
-            $path = $rootPath . '/' . $filename;
-            if (is_dir($path)) {
-                $this->deleteDirectory($path);
-            } else {
-                unlink($path);
-            }
-        }
-        rmdir($rootPath);
+    
+    private function isExperimentFile($filename) {
+        return preg_match('/^.+\.csv$/', $filename);
     }
 
     private function deactivateWebsite() {
-        // todo
-    }
-
-    private function buildDatabase() {
         // todo
     }
 
@@ -141,8 +132,7 @@ class Build_Builder {
         // todo
     }
 
-    private function buildArchive() {
+    private function createArchive() {
         // todo
     }
-
 }

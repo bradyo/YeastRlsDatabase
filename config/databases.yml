@@ -2,6 +2,7 @@ all:
   default:
     class: sfPDODatabase
     param:
-      dsn: 'mysql:host=localhost;dbname=sageweb_yeast-rls'
+      dsn: 'mysqli:host=localhost;dbname=sageweb_yeast-rls'
       username: root
       password: happy
+      encoding: UTF8
