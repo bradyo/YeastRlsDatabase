@@ -80,7 +80,6 @@ CREATE TABLE IF NOT EXISTS strain (
 CREATE TABLE IF NOT EXISTS cell (
     id INT AUTO_INCREMENT PRIMARY KEY,
     experiment_id INT,
-    citation_id INT,
     strain_id INT,
     label VARCHAR(255),
     media VARCHAR(255),
@@ -92,9 +91,15 @@ CREATE TABLE IF NOT EXISTS cell (
     INDEX (lifespan),
     INDEX (end_state),
     FOREIGN KEY (experiment_id) REFERENCES experiment (id) ON DELETE SET NULL,
-    FOREIGN KEY (citation_id) REFERENCES citation (id) ON DELETE SET NULL,
     FOREIGN KEY (strain_id) REFERENCES strain (id) ON DELETE SET NULL
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci; 
+
+CREATE TABLE IF NOT EXISTS cell_citation (
+    cell_id INT NOT NULL,
+    citation_id INT NOT NULL,
+    FOREIGN KEY (cell_id) REFERENCES cell (id) ON DELETE CASCADE,
+    FOREIGN KEY (citation_id) REFERENCES citation (id) ON DELETE CASCADE
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 
 CREATE TABLE IF NOT EXISTS sample (

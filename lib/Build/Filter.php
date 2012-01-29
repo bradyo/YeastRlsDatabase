@@ -82,5 +82,9 @@ class Build_Filter
         } else {
             return false;
         }
+    } 
+    
+    public function getCitations() {
+        
     }
 }
