@@ -6,28 +6,36 @@ class Build_Filter
     const MEDIA_COLUMN = 1;
     const BACKGROUND_COLUMN = 2;
     const MATING_TYPE_COLUMN = 3;
-    const REFERENCE_COLUMN = 4;
-    const COMMENT_COLUMN = 5;
+    const PUBMED_ID_COLUMN = 4;
+    const CITATION_SUMMARY_COLUMN = 5;
+    const COMMENT_COLUMN = 6;
     
     const DEFAULT_MEDIA = "YPD";
  
     private $genotypeService;
     private $matingTypeService;
+    
     private $filters;
+    private $allowedStrainKeys;
+    private $allowedSampleKeys;
+    private $pubmedIdsBySampleKey;
     
     /**
+     * @param PDO $db 
      * @param string $filterPath Path to filters csv file
-     * @param Service_GenotypeService $genotypeService
-     * @param Service_MatingTypeService $matingTypeService 
      */
-    public function __construct($filterPath, $genotypeService, $matingTypeService) {
-        $this->genotypeService = $genotypeService;
-        $this->matingTypeService = $matingTypeService;
+    public function __construct($db, $filterPath) {
+        $this->genotypeService = new Service_GeneService($db);
+        $this->matingTypeService = new Service_MatingTypeService();
         
-        $filters = array();
+        $this->filters = array();
+        $this->allowedStrainKeys = array();
+        $this->allowedSampleKey = array();
+        $this->pubmedIdsBySampleKey = array();
         $filterFile = fopen($filterPath, 'r');
         fgetcsv($filterFile); // discard header
         while (false !== ($rowData = fgetcsv($filterFile))) {
+            // normalize data
             $shortGenotype = trim($rowData[self::SHORT_GENOTYPE_COLUMN]);
             $poolingGenotype = $this->genotypeService->getNormalizedGenotype($shortGenotype);
             $media = trim($rowData[self::MEDIA_COLUMN]);
@@ -39,29 +47,42 @@ class Build_Filter
             $normalMatingType = $this->matingTypeService->getNormalizedMatingType($matingType);
             $reference = trim($rowData[self::REFERENCE_COLUMN]);
             $comment = trim($rowData[self::COMMENT_COLUMN]);
+            $pubmedId = trime($rowData[self::PUBMED_ID_COLUMN]);
             
-            $key = $this->getStrainKey($poolingGenotype, $background, $normalMatingType);
+            // save data to filters
             $data = array(
-                'shortGenotype' => $shortGenotype,
-                'poolingGenotype' => $poolingGenotype,
+                'short_genotype' => $shortGenotype,
+                'pooling_genotype' => $poolingGenotype,
                 'media' => $media,
                 'background' => $background,
-                'matingType' => $normalMatingType,
-                'reference' => $reference,
+                'mating_type' => $normalMatingType,
+                'pubmed_id' => $pubmedId,
+                'citation_summary' => $reference,
                 'comment' => $comment,
             );
-            $filters[$key] = $data;
+            $this->filters[] = $data;
+            
+            $strainKey = $this->getStrainKey($poolingGenotype, $background, $matingType);
+            if (! in_array($strainKey, $this->allowedStrainKeys)) {
+                $this->allowedStrainKeys[$strainKey] = $strainKey;
+            }
+           
+            $sampleKey = $this->getSampleKey($poolingGenotype, $media, $background, $matingType);
+            if (! in_array($sampleKey, $this->allowedSampleKeys)) {
+                $this->allowedSampleKeys[$sampleKey] = $sampleKey;
+            }
+            
+            if (isset($this->pubmedIdsBySampleKey[$sampleKey])) {
+                $this->pubmedIdsBySampleKey[$sampleKey][] = $pubmedId;
+            } else {
+                $this->pubmedIdsBySampleKey[$sampleKey] = array($pubmedId);
+            }
         }
         fclose($filterFile);
-        $this->filters = $filters;
     }
     
     public function isEmpty() {
         return count($this->filters) == 0;
-    }
-    
-    public function hasStrainKey($key) {
-        return isset($this->filters[$key]);
     }
     
     public function getStrainKey($poolingGenotype, $background, $matingType) {
@@ -72,19 +93,24 @@ class Build_Filter
         )); 
     }
     
-    public function isStrainAllowed($strainData) {
-        $poolingGenotype = $strainData['poolingGenotype'];
-        $background = $strainData['background'];
-        $matingType = $strainData['matingType'];
-        $key = $this->getStrainKey($poolingGenotype, $background, $matingType);
-        if (isset($this->filters[$key])) {
-            return true;
-        } else {
-            return false;
-        }
-    } 
+    public function isStrainAllowed($strainKey) {
+        return (isset($this->allowedStrainKeys[$strainKey]));
+    }
     
-    public function getCitations() {
-        
+    public function getSampleKey($genotype, $media, $matingType, $background) {
+        return join('/', array(
+            $genotype,
+            $media,
+            $matingType,
+            $background,
+        )); 
+    }
+    
+    public function isSampleAllowed($sampleKey) {
+        return isset($this->allowedSampleKey[$sampleKey]);
+    }
+    
+    public function getPubmedIdsBySampleKey($sampleKey) {
+        return $this->pubmedIdsBySampleKey[$sampleKey];
     }
 }

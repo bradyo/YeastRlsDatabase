@@ -5,6 +5,7 @@ data/cache/*
 data/logs/*
 data/sources/*
 data/plots/*
+data/test-input/*
 
 # ignore dev files
 nbproject/

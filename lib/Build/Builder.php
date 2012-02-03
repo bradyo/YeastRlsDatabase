@@ -4,6 +4,7 @@ class Build_Builder {
     const FILTER_FILENAME = 'filter.csv';
     const STRAINS_FILENAME = 'strains.csv';
     const EXPERIMENTS_FOLDER = 'experiments';
+    const CITATIONS_FILENAME = 'citations.csv';
     
     private $inputPath;
     private $archivePath;
@@ -44,6 +45,22 @@ class Build_Builder {
 
     private function rebuildDatabase() {
         $this->truncateTargetTables();
+        
+        // import globla citations file
+        $citationsFilePath = $this->inputPath
+                . DIRECTORY_SEPARATOR . self::CITATIONS_FILENAME;
+        if (is_file($citationsFilePath)) {
+            $importer = new Build_CitationsImporter($this->db);
+            $this->db->beginTransaction();
+            try {
+                $importer->import($citationsFilePath);
+                $this->db->commit();
+            } catch (Exception $e) {
+                $this->db->rollBack();
+            }
+        }
+        
+        // process each experiment input folder
         $dir = opendir($this->inputPath);
         while (false !== ($filename = readdir($dir))) {
             $path = $this->inputPath . DIRECTORY_SEPARATOR . $filename;
@@ -52,21 +69,15 @@ class Build_Builder {
             }
             $this->processInputFolder($filename);
         }
+        
+        // udpate build meta data
+        $stmt = $this->db->prepare('
+            INSERT INTO build_meta (created_at) VALUES (?)
+            ');
+        $stmt->execute(array(date('Y-m-d H:i:s')));
+        
+        // optimize database indexes
         $this->optimizeTargetTables();
-    }
-    
-    private function truncateTargetTables() {
-        $targetTables = $this->getTargetTables();
-        foreach ($targetTables as $table) {
-            $this->db->exec('TRUNCATE ' . $table);
-        }
-    }
-    
-    private function optimizeTargetTables() {
-        $targetTables = $this->getTargetTables();
-        foreach ($targetTables as $table) {
-            $this->db->exec('OPTIMIZE ' . $table);
-        }
     }
     
     private function getTargetTables() {
@@ -84,13 +95,27 @@ class Build_Builder {
         );
     }
     
+    private function truncateTargetTables() {
+        $targetTables = $this->getTargetTables();
+        foreach ($targetTables as $table) {
+            $this->db->exec('TRUNCATE ' . $table);
+        }
+    }
+    
+    private function optimizeTargetTables() {
+        $targetTables = $this->getTargetTables();
+        foreach ($targetTables as $table) {
+            $this->db->exec('OPTIMIZE ' . $table);
+        }
+    }
+
     private function processInputFolder($namespace) {
         // load filter file if it exists
         $filter = null;
         $filterFilePath = $this->inputPath . DIRECTORY_SEPARATOR . $namespace 
                 . DIRECTORY_SEPARATOR . self::FILTER_FILENAME;
         if (is_file($filterFilePath)) {
-            $filter = new Build_Filter($filterFilePath, $this->geneService, $this->matingTypeService);
+            $filter = new Build_Filter($this->db, $filterFilePath);
         }
         
         // import strains
@@ -98,9 +123,18 @@ class Build_Builder {
                 . DIRECTORY_SEPARATOR . $namespace 
                 . DIRECTORY_SEPARATOR . self::STRAINS_FILENAME;
         if (is_file($strainsFilePath)) {
-            $importer = new Build_StrainsImporter($this->db, $this->geneService, $this->matingTypeService);
+            $importer = new Build_StrainsImporter($this->db);
             $importer->setFilter($filter);
-            $importer->import($strainsFilePath, $namespace);
+            
+            // try importing strains in a transaction
+            $this->db->beginTransaction();
+            try {
+                $importer->import($strainsFilePath, $namespace);
+                $this->db->commit();
+            } catch (Exception $e) {
+                echo "error loading strains $strainsFilePath";
+                $this->db->rollBack();
+            }
         }
         
         // import experiments
@@ -109,13 +143,23 @@ class Build_Builder {
                 . DIRECTORY_SEPARATOR . self::EXPERIMENTS_FOLDER;
         if (is_dir($inputExperimentsPath)) {
             $dir = opendir($inputExperimentsPath);
-            $importer = new Build_ExperimentImporter($this->db, $this->geneService, $this->matingTypeService);
+            $importer = new Build_ExperimentImporter($this->db);
             while (($filename = readdir($dir)) !== false) {
                 if (! $this->isExperimentFile($filename)) {
                     continue;
                 }
                 $expFilePath = $inputExperimentsPath . DIRECTORY_SEPARATOR . $filename;
-                $importer->import($namespace, $expFilePath);
+                echo "importing $expFilePath\n";
+                
+                // try importing the file in a transaction
+                $this->db->beginTransaction();
+                try {
+                    $importer->import($namespace, $expFilePath);
+                    $this->db->commit();
+                } catch (Exception $e) {
+                    echo "error loading experiment $expFilePath\n";
+                    $this->db->rollBack();
+                }
             }
         }
     }

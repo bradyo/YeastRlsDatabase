@@ -3,11 +3,11 @@ SET storage_engine=INNODB;
 CREATE TABLE IF NOT EXISTS gene (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ncbi_gene_id INT,
-    ncbi_tax_id INT,
+    ncbi_taxon_id INT,
     symbol VARCHAR(32),
     locus_tag VARCHAR(32),
     INDEX (ncbi_gene_id),
-    INDEX (ncbi_tax_id),
+    INDEX (ncbi_taxon_id),
     INDEX (symbol),
     INDEX (locus_tag)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
@@ -51,6 +51,9 @@ CREATE TABLE IF NOT EXISTS experiment (
 CREATE TABLE IF NOT EXISTS citation (
     id INT AUTO_INCREMENT PRIMARY KEY,
     pubmed_id INT,
+    title TEXT,
+    first_author TEXT,
+    year INT,
     summary TEXT,
     INDEX (pubmed_id)
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
@@ -94,14 +97,6 @@ CREATE TABLE IF NOT EXISTS cell (
     FOREIGN KEY (strain_id) REFERENCES strain (id) ON DELETE SET NULL
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci; 
 
-CREATE TABLE IF NOT EXISTS cell_citation (
-    cell_id INT NOT NULL,
-    citation_id INT NOT NULL,
-    FOREIGN KEY (cell_id) REFERENCES cell (id) ON DELETE CASCADE,
-    FOREIGN KEY (citation_id) REFERENCES citation (id) ON DELETE CASCADE
-) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
-
-
 CREATE TABLE IF NOT EXISTS sample (
     id INT AUTO_INCREMENT PRIMARY KEY,
     namespace VARCHAR(32),
@@ -128,6 +123,13 @@ CREATE TABLE IF NOT EXISTS sample (
     INDEX (temperature),
     INDEX (lifespans_count),
     INDEX (lifespans_mean)
+) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS sample_citation (
+    sample_id INT NOT NULL,
+    citation_id INT NOT NULL,
+    FOREIGN KEY (sample_id) REFERENCES sample (id) ON DELETE CASCADE,
+    FOREIGN KEY (citation_id) REFERENCES citation (id) ON DELETE CASCADE
 ) DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS sample_cell (

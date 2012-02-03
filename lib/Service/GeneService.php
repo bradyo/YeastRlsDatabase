@@ -28,6 +28,8 @@ class Service_GeneService
             } else if (strtolower($value) == $value) {
                 $isUpper = false;
             } else {
+                // skip normalization on mixed cased values
+                $normalizedValues[] = $value;
                 continue;
             }
             $value = strtolower($value);
@@ -40,7 +42,6 @@ class Service_GeneService
                 $geneSymbols[$geneSymbol] = $geneSymbol;
             }
             $geneSymbols = array_keys($geneSymbols);
-
             if (count($geneSymbols) == 1) {
                 $geneSymbol = $geneSymbols[0];
                 $value = $geneSymbol;
@@ -51,7 +52,6 @@ class Service_GeneService
             } else {
                 $value = strtolower($value);
             }
-            
             $normalizedValues[] = $value;
         }
         sort($normalizedValues);
